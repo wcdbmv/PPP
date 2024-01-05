@@ -1,0 +1,20 @@
+Checks: "-*,\
+bugprone-*,\
+-bugprone-easily-swappable-parameters,\
+cert-*,\
+cppcoreguidelines-*,\
+-cppcoreguidelines-avoid-magic-numbers,\
+-cppcoreguidelines-non-private-member-variables-in-classes,\
+google-*,\
+hicpp-*,\
+misc-*,\
+-misc-non-private-member-variables-in-classes,\
+modernize-*,\
+-modernize-use-trailing-return-type,\
+mpi-*,\
+performance-*,\
+portability-*,\
+readability-*,\
+-readability-identifier-length,\
+-readability-magic-numbers,\
+"
