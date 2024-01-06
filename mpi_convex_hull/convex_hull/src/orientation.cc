@@ -19,3 +19,14 @@ Direction Orientation(const Point pq, const Point qr) {
 
   return Direction::kClockwise;
 }
+
+bool AngleLess(const Point p, const Point q, const Point r) {
+  const auto direction = Orientation(p, q, r);
+  if (direction == Direction::kCounterclockwise) {
+    return true;
+  }
+  if (direction == Direction::kCollinear) {
+    return Point::SquareDistance(p, q) < Point::SquareDistance(p, r);
+  }
+  return false;
+}

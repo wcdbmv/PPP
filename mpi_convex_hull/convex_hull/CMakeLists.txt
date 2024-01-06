@@ -11,6 +11,7 @@ set(HEADERS
 set(SOURCES
     src/graham_scan.cc
     src/orientation.cc
+    src/point.cc
     src/point_cloud.cc)
 
 add_library(${PROJECT_NAME} STATIC

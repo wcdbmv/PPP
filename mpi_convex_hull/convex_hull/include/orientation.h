@@ -10,3 +10,5 @@ enum class Direction : int8_t {
 
 Direction Orientation(Point p, Point q, Point r);
 Direction Orientation(Point pq, Point qr);
+
+bool AngleLess(Point p, Point q, Point r);

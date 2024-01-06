@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <iosfwd>
 
 struct Point {
   int64_t x;
@@ -18,6 +19,9 @@ struct Point {
 
 [[nodiscard]] constexpr bool operator==(Point a, Point b) noexcept;
 [[nodiscard]] constexpr bool operator!=(Point a, Point b) noexcept;
+[[nodiscard]] constexpr bool operator<(Point a, Point b) noexcept;
+
+std::ostream& operator<<(std::ostream& os, Point point);
 
 constexpr Point::Point(const int64_t x, const int64_t y) noexcept
     : x{x}, y{y} {}
@@ -43,4 +47,8 @@ constexpr bool operator==(const Point a, const Point b) noexcept {
 
 constexpr bool operator!=(const Point a, const Point b) noexcept {
   return !(a == b);
+}
+
+constexpr bool operator<(const Point a, const Point b) noexcept {
+  return a.y < b.y || (a.y == b.y && a.x < b.x);
 }

@@ -7,22 +7,12 @@ PointCloud GrahamScan(PointCloud& points) {
     return points;
   }
 
-  const auto min = std::min_element(
-      points.begin(), points.end(), [](const Point a, const Point b) {
-        return a.y < b.y || (a.y == b.y && a.x < b.x);
-      });
-
+  const auto min = std::min_element(points.begin(), points.end());
   std::iter_swap(points.begin(), min);
 
   const auto p0 = points.front();
-  std::sort(
-      points.begin() + 1, points.end(), [p0](const Point a, const Point b) {
-        const auto direction = Orientation(p0, a, b);
-        if (direction == Direction::kCollinear) {
-          return Point::SquareDistance(p0, a) < Point::SquareDistance(p0, b);
-        }
-        return direction == Direction::kCounterclockwise;
-      });
+  std::sort(points.begin() + 1, points.end(),
+            [p0](const Point a, const Point b) { return AngleLess(p0, a, b); });
 
   size_t new_size = 1;
   for (size_t i = 1, size = points.size(); i < size; ++i) {
