@@ -3,7 +3,9 @@ bugprone-*,\
 -bugprone-easily-swappable-parameters,\
 cert-*,\
 cppcoreguidelines-*,\
+-cppcoreguidelines-avoid-magic-numbers,\
 -cppcoreguidelines-non-private-member-variables-in-classes,\
+-cppcoreguidelines-special-member-functions,\
 google-*,\
 hicpp-*,\
 misc-*,\
