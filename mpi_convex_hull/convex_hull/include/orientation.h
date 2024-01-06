@@ -2,7 +2,7 @@
 
 #include "point.h"
 
-enum class Direction {
+enum class Direction : int8_t {
   kCounterclockwise = -1,
   kCollinear = 0,
   kClockwise = 1,
