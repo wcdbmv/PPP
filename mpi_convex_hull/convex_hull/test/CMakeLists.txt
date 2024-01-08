@@ -13,7 +13,8 @@ enable_testing()
 
 set(SOURCES
     graham_scan_test.cc
-    orientation_test.cc)
+    orientation_test.cc
+    tangent_test.cc)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
