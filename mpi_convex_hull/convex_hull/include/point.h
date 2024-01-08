@@ -14,6 +14,7 @@ struct Point {
 
   [[nodiscard]] static constexpr int64_t SquareDistance(Point a,
                                                         Point b) noexcept;
+  [[nodiscard]] static constexpr int64_t DotProduct(Point a, Point b) noexcept;
   [[nodiscard]] static constexpr int64_t SkewProduct(Point a, Point b) noexcept;
 };
 
@@ -35,6 +36,10 @@ constexpr int64_t Point::SquareLength() const noexcept {
 
 constexpr int64_t Point::SquareDistance(const Point a, const Point b) noexcept {
   return Point(a, b).SquareLength();
+}
+
+constexpr int64_t Point::DotProduct(const Point a, const Point b) noexcept {
+  return a.x * b.x + a.y * b.y;
 }
 
 constexpr int64_t Point::SkewProduct(const Point a, const Point b) noexcept {

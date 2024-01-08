@@ -3,9 +3,9 @@
 #include "point.h"
 
 enum class Direction : int8_t {
-  kCounterclockwise = -1,
+  kClockwise = -1,
   kCollinear = 0,
-  kClockwise = 1,
+  kCounterclockwise = 1,
 };
 
 Direction Orientation(Point p, Point q, Point r);

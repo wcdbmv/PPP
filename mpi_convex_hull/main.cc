@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include <mpi.h>
+#include <unistd.h>
 
 #include "benchmark.h"
 #include "graham_scan.h"
@@ -12,6 +13,7 @@
 #include "orientation.h"
 #include "point.h"
 #include "point_cloud.h"
+#include "tangent.h"
 
 namespace {
 
@@ -22,8 +24,8 @@ int g_comm_size{};
 benchmark::RepeatingTimer g_comm_timer;
 MPI_Datatype g_mpi_point;
 MPI_Op g_mpi_min_point;
-MPI_Op g_mpi_max_angle;
-Point g_last_point_in_hull;
+MPI_Op g_mpi_min_angle;
+Point g_last_point_in_hull{-999999999, 0};
 // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 void PrintUsage(const char* prog_name) {
@@ -67,7 +69,7 @@ void MpiMinPointOp(void* in_vec,
   }
 }
 
-void MpiMaxAngleOp(void* in_vec,
+void MpiMinAngleOp(void* in_vec,
                    void* in_out_vec,
                    int* /* len */,
                    MPI_Datatype* /* type */) {
@@ -76,22 +78,25 @@ void MpiMaxAngleOp(void* in_vec,
   auto* in_out = static_cast<Point*>(in_out_vec);
 
   // First elements.
-  if (AngleLess(g_last_point_in_hull, *in_out, *in)) {
+  if (*in_out == g_last_point_in_hull ||
+      *in != g_last_point_in_hull &&
+          AngleLess(g_last_point_in_hull, *in, *in_out)) {
     *in_out = *in;
   }
 }
 
 void InitMpiRuntime() {
-  constexpr std::array<int, 1> block_counts{2};
-  constexpr std::array<MPI_Aint, 1> offsets{0};
-  const std::array<MPI_Datatype, 1> types{MPI_LONG_LONG};
+  constexpr int kCount = 1;
+  constexpr std::array<int, kCount> block_counts{2};
+  constexpr std::array<MPI_Aint, kCount> offsets{0};
+  const std::array<MPI_Datatype, kCount> types{MPI_LONG_LONG};
 
-  MPI_Type_create_struct(1, block_counts.data(), offsets.data(), types.data(),
-                         &g_mpi_point);
+  MPI_Type_create_struct(kCount, block_counts.data(), offsets.data(),
+                         types.data(), &g_mpi_point);
   MPI_Type_commit(&g_mpi_point);
 
   MPI_Op_create(&MpiMinPointOp, 1, &g_mpi_min_point);
-  MPI_Op_create(&MpiMaxAngleOp, 1, &g_mpi_max_angle);
+  MPI_Op_create(&MpiMinAngleOp, 1, &g_mpi_min_angle);
 }
 
 void BroadcastCloudSize(size_t& cloud_size) {
@@ -141,59 +146,13 @@ void FintBottom(const Point local_point, Point& bottom) {
                 MPI_COMM_WORLD);
 }
 
-Point FindRightTangent(const PointCloud& cloud, const Point reference) {
-  const auto cloud_size = cloud.size();
-
-  size_t start = 0;
-  size_t end = cloud_size;
-
-  auto start_prev = Orientation(reference, cloud[start], cloud[end - 1]);
-  auto start_next =
-      Orientation(reference, cloud[start], cloud[(start + 1) % end]);
-
-  while (start < end) {
-    const auto pivot = (start + end) / 2;
-    const auto pivot_prev =
-        Orientation(reference, cloud[pivot], cloud[(pivot - 1) % cloud_size]);
-    const auto pivot_next =
-        Orientation(reference, cloud[pivot], cloud[(pivot + 1) % cloud_size]);
-
-    const auto pivot_side = Orientation(reference, cloud[start], cloud[pivot]);
-
-    if (pivot_prev != Direction::kCounterclockwise &&
-        pivot_next != Direction::kCounterclockwise) {
-      start = pivot;
-      break;
-    }
-
-    if ((pivot_side == Direction::kClockwise &&
-         start_next == Direction::kCounterclockwise) ||
-        (start_prev == start_next) ||
-        (pivot_side == Direction::kCounterclockwise &&
-         pivot_prev == Direction::kCounterclockwise)) {
-      end = pivot;
-    } else {
-      start = pivot + 1;
-      start_prev = static_cast<Direction>(-static_cast<int>(pivot_next));
-      start_next =
-          Orientation(reference, cloud[start], cloud[(start + 1) % cloud_size]);
-    }
-  }
-
-  if (cloud[start] == reference) {
-    start = (start + 1) % cloud_size;
-  }
-
-  return cloud[start];
-}
-
 void FindNextPointInHull(const Point local_point,
                          const Point last_found,
                          Point& next_hull_point) {
   g_last_point_in_hull = last_found;
 
   benchmark::TimerGuard guard{g_comm_timer};
-  MPI_Allreduce(&local_point, &next_hull_point, 1, g_mpi_point, g_mpi_max_angle,
+  MPI_Allreduce(&local_point, &next_hull_point, 1, g_mpi_point, g_mpi_min_angle,
                 MPI_COMM_WORLD);
 }
 
@@ -240,11 +199,12 @@ int MpiConvexHullMaster(const char* input_filename,
     tangent_timer.Start();
     const auto q = FindRightTangent(sub_hull, final_hull[k]);
     tangent_timer.Stop();
+    LogMaster("[i=", k, "] Found right tangent: ", q, '\n');
 
     FindNextPointInHull(q, final_hull[k], final_hull[k + 1]);
     ++k;
 
-    LogMaster("Found next point in hull: ", final_hull[k], '\n');
+    LogMaster("[i=", k, "] Found next point in hull: ", final_hull[k], '\n');
   } while (k <= final_hull.size() && final_hull[k] != final_hull[0]);
   merge_timer.Stop();
 
@@ -293,7 +253,7 @@ int MpiConvexHullSlave() {
   LogSlave("Received point cloud chunk of size ", sub_cloud.size(), '\n');
 
   LogSlave("Calculating convex hull for sub cloud\n");
-  auto sub_hull = GrahamScan(sub_cloud);
+  const auto sub_hull = GrahamScan(sub_cloud);
   std::ofstream{std::string{"data/sub_hull_"} + std::to_string(g_comm_rank) +
                 ".dat"}
       << sub_hull;
@@ -302,9 +262,13 @@ int MpiConvexHullSlave() {
   FintBottom(sub_hull[0], first_in_hull);
 
   Point p = first_in_hull;
+  int k = 0;
   do {
     const auto q = FindRightTangent(sub_hull, p);
+    LogSlave("[i=", k, "] ", "Found right tangent: ", q, '\n');
     FindNextPointInHull(q, p, p);
+    LogSlave("[i=", k, "] Found next point in hull: ", p, '\n');
+    ++k;
   } while (p != first_in_hull);
 
   return EX_OK;
