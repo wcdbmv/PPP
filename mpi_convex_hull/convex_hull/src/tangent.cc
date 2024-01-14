@@ -1,5 +1,7 @@
 #include "tangent.h"
 
+#include <algorithm>
+
 #include "orientation.h"
 
 Point FindRightTangent(const PointCloud& hull, const Point reference) {

@@ -1,5 +1,7 @@
 #include "graham_scan.h"
 
+#include <algorithm>
+
 #include "orientation.h"
 
 PointCloud GrahamScan(PointCloud& points) {

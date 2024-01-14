@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(MPI REQUIRED)
 
+add_compile_definitions("$<$<CONFIG:DEBUG>:DEBUG>")
+add_compile_options("$<$<CONFIG:RELEASE>:-O2>")
+
 add_subdirectory(benchmark)
 add_subdirectory(convex_hull)
 add_subdirectory(utils)

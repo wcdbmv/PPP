@@ -41,13 +41,17 @@ void PrintUsage(const char* prog_name) {
 
 template <typename... Args>
 void LogMaster(Args&&... args) {
+#ifdef DEBUG
   PrintGreen(std::cout, "[master] ", std::forward<Args>(args)...);
+#endif  // DEBUG
 }
 
 template <typename... Args>
 void LogSlave(Args&&... args) {
+#ifdef DEBUG
   PrintYellow(std::cout, "[slave ", g_comm_rank, "] ",
               std::forward<Args>(args)...);
+#endif  // DEBUG
 }
 
 template <typename... Args>
@@ -184,9 +188,11 @@ int MpiConvexHullMaster(const char* input_filename,
   LogMaster("Calculating convex hull for sub cloud\n");
   auto sub_hull = GrahamScan(sub_cloud);
   sub_hull_timer.Stop();
+#ifdef DEBUG
   std::ofstream{std::string{"data/sub_hull_"} + std::to_string(g_comm_rank) +
                 ".dat"}
       << sub_hull;
+#endif  // DEBUG
 
   PointCloud final_hull(cloud.size());
   FintBottom(sub_hull[0], final_hull[0]);
@@ -254,9 +260,11 @@ int MpiConvexHullSlave() {
 
   LogSlave("Calculating convex hull for sub cloud\n");
   const auto sub_hull = GrahamScan(sub_cloud);
+#ifdef DEBUG
   std::ofstream{std::string{"data/sub_hull_"} + std::to_string(g_comm_rank) +
                 ".dat"}
       << sub_hull;
+#endif  // DEBUG
 
   Point first_in_hull;
   FintBottom(sub_hull[0], first_in_hull);
