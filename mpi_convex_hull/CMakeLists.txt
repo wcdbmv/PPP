@@ -2,13 +2,6 @@ cmake_minimum_required(VERSION 3.25)
 project(mpi_convex_hull
         LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-
-find_package(MPI REQUIRED)
-
-add_compile_definitions("$<$<CONFIG:DEBUG>:DEBUG>")
-add_compile_options("$<$<CONFIG:RELEASE>:-O2>")
-
 add_subdirectory(benchmark)
 add_subdirectory(convex_hull)
 add_subdirectory(utils)
