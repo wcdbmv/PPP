@@ -13,35 +13,16 @@ namespace {
 template <typename T>
 T RandInt(T a, T b) {
   thread_local std::mt19937 generator(std::random_device{}());
-  thread_local std::uniform_int_distribution<T> distribution(a, b);
+  std::uniform_int_distribution<T> distribution(a, b);
   return distribution(generator);
 }
 
-int64_t RandCoordinate(const int64_t limit) {
-  const int64_t safe_limit = (limit == 0 ? 1L : limit) * 500'000;
-  return RandInt(-safe_limit, safe_limit);
-}
-
-Point RandPoint(const int64_t limit) {
-  return Point{RandCoordinate(limit), RandCoordinate(limit)};
-}
-
-/*
- * If we allow each point to be picked in the same range, as the number of
- * points increase, the final shape will strongly resemble a square. Instead,
- * if we partition the number of points so that each subset of points is picked
- * from a range that is larger/smaller than the previous ones, we will obtain a
- * more random shape. In particular, we'll have fewer chances to have
- * collinear points on the convex hull, and its shape will be more fuzzy.
- * To improve the fuzziness around the edges, we'll use a logarithmic function;
- * the choice of the exact expression is rather customary and has been done on
- * an inspection basis (looking at the final picture of the point cloud).
- */
-Point RandomPointGenerator(const size_t index, const size_t size) {
-  const auto i = static_cast<double>(index);
-  const auto n = static_cast<double>(size);
-  const auto limit = static_cast<int64_t>(1.0 - log((1.0 + i / 10) / (n / 10)));
-  return RandPoint(limit);
+Point RandomPointGenerator(const size_t size) {
+  const auto radius = static_cast<int64_t>(size) * 100;
+  const auto x = RandInt(-radius, radius);
+  const auto max_y = static_cast<int64_t>(std::sqrt(radius * radius - x * x));
+  const auto y = RandInt(-max_y, max_y);
+  return Point{x, y};
 }
 
 size_t ParseCloudSize(const char* num) {
@@ -77,7 +58,7 @@ int main(int argc, const char** argv) {
 
   PointCloud pc(cloud_size);
   for (size_t i = 0; i < cloud_size; ++i) {
-    pc[i] = RandomPointGenerator(i, cloud_size);
+    pc[i] = RandomPointGenerator(cloud_size);
   }
 
   std::cout << "Storing point cloud into " << dest_filename << '\n';
